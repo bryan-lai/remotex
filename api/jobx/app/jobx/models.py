@@ -14,6 +14,7 @@ from sqlalchemy.orm import relationship
 
 from eva.orm import ORMBase
 from eva.utils.time_ import rfc3339_string
+from .settings import ABSTRACT_MAX
 
 
 jobx_job__categroy = Table(
@@ -51,6 +52,9 @@ class JobxPlatform(ORMBase):
     body = Column(Text)
     body_markup = Column(Integer, default=1)
 
+    # 最后同步时间
+    last_sync = Column(DateTime, default=datetime.datetime.utcnow)
+
     created = Column(DateTime, default=datetime.datetime.utcnow)
     updated = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -67,7 +71,8 @@ class JobxPlatform(ORMBase):
             "id": self.id,
             "name": self.name,
             "home_url": self.home_url,
-            "summary": self.summary
+            "summary": self.summary,
+            "last_sync": rfc3339_string(self.last_sync)
         }
 
     @property
@@ -79,6 +84,7 @@ class JobxPlatform(ORMBase):
             "summary": self.summary,
             "body": self.body,
             "body_markup": self.body_markup,
+            "last_sync": rfc3339_string(self.last_sync),
             'created': rfc3339_string(self.created),
             'updated': rfc3339_string(self.updated),
         }
@@ -243,7 +249,7 @@ class JobxJob(ORMBase):
             'id': self.id,
             'platform': self.platform.isimple,
             'title': self.title,
-            'url': self.url,
+            'abstract': self.abstract,
             'price': self.price,
             'city': self.city,
             'categories': [x.isimple for x in self.categories],
@@ -265,9 +271,9 @@ class JobxJob(ORMBase):
             'id': self.id,
             'platform': self.platform.isimple,
             'title': self.title,
+            'abstract': self.abstract,
             'body': self.body,
             'body_markup': self.body_markup,
-            'url': self.url,
             'price': self.price,
             'city': self.city,
             'categories': [x.isimple for x in self.categories],
@@ -286,3 +292,7 @@ class JobxJob(ORMBase):
     @property
     def iview_spider(self):
         return self.iview_public
+
+    @property
+    def abstract(self):
+        return self.body[:ABSTRACT_MAX]
