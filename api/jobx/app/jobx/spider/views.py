@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy import and_
 from sqlalchemy.orm.exc import (
     NoResultFound,
@@ -6,6 +8,9 @@ from sqlalchemy.orm.exc import (
 
 from eva.web import APIRequestHandler
 from eva.exceptions import EvaError
+from eva.utils.time_ import (
+    utc_rfc3339_parse
+)
 
 from app.jobx.models import (
     JobxPlatform,
@@ -15,10 +20,6 @@ from app.jobx.models import (
     JobxJob
 )
 from .forms import JobNewForm, JobEditForm
-# FIXME! merge to eva
-from app.jobx.utils import (
-    utc_rfc3339_parse
-)
 
 
 class JobHandler(APIRequestHandler):
@@ -52,6 +53,10 @@ class JobHandler(APIRequestHandler):
             )
             job.checksum = form.checksum.data
 
+        if not form.body.is_missing:
+            job.body = form.body.data
+        if not form.body_markup.is_missing:
+            job.body_markup = form.body_markup.data
         if not form.url.is_missing:
             job.url = form.url.data
         if not form.price.is_missing:

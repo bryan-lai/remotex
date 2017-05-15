@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 from sqlalchemy import and_
 from sqlalchemy.orm.exc import (
@@ -13,7 +14,7 @@ from app.jobx.models import JobxJob
 
 
 def public_list_objects(handler, model, q):
-    filters = get_filters(handler)
+    filters = get_filters(handler, sort_by="release_date")
     total = q.count()
     q = get_limit_objects(handler, model, q, filters)
 
@@ -28,7 +29,16 @@ class JobHandler(APIRequestHandler):
 
     def get(self):
         '''查看 Job 列表'''
-        q = self.db.query(JobxJob)
+
+        # 查询指定天数内的Job
+        days = self.get_argument('days', 90)
+
+        q = self.db.query(JobxJob).filter(
+            and_(
+                JobxJob.release_date > datetime.datetime.utcnow() - datetime.timedelta(days=days),
+                JobxJob.status == 0
+            )
+        )
         d = public_list_objects(self, JobxJob, q)
         self.success(**d)
 
@@ -79,5 +89,8 @@ class JobURLHandler(_BaseSingleJobHandler):
             es.index(index='jobx_url_click', doc_type='url_click', body=body)
         else:
             logging.warn("Elasticsearch is not ready!")
+
+        job.view_count += 1
+        self.db.commit()
 
         self.redirect(self.job.url)
